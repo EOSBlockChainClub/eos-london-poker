@@ -429,6 +429,30 @@ class poker : public eosio::contract
 		assert(table_it != datas.end());
 		assert(table_it->state == BET_ROUND);
 		assert(_self == table_it->target);
+
+		// we can check only if bets are equal
+		assert(table_it->alice_bet == table_it->bob_bet);
+
+		if (_self == table_it->alice)
+		{
+			// first action, let the other one decide
+			datas.modify(table_it, _self, [&](auto& table) {
+				table.target = table.bob;
+			});
+		}
+		else
+		{
+			datas.modify(table_it, _self, [&](auto& table) {
+				if (table.cards_dealt < 9) // magic number 9 is `2(alice cards) + 2(bob cards) + 3 (flop cards) + 1 (turn card) + 1 (river card)`
+				{
+					table.state = DEAL_TABLE;
+	}
+				else
+				{
+					// calculate winner!
+				}
+			});
+		}
 	}
 	/// @abi action
 	void call(uint64_t table_id)
