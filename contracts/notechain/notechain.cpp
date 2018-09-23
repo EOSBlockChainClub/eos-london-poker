@@ -63,18 +63,52 @@ class poker : public eosio::contract
 
 		bool alice_ready;
 		bool bob_ready;
+
+		auto primary_key() const { return table_id; }
 	};
 
 	typedef eosio::multi_index< N(rounddata), rounddata
     //   indexed_by< N(getbyuser), const_mem_fun<notestruct, account_name, &notestruct::get_by_user> >
-      > roundtable;
+      > rounddatas;
 
 	//////////// GAME SEARCH SIMPLIFIED FOR HACKATHON ////////////
 
 	/// @abi action
 	void search_game( /* asset min_stake, asset max_stake */ ) // only one bet possible for hackathon
 	{
+		// couldn't find suitable table, let's create a new one
+		rounddatas datas(_self, _self);
 
+		for (auto table_it = datas.begin(); table_it != datas.end(); ++table_it)
+		{
+			if (table_it->state != roundstatename.WAITING_FOR_PLAYERS)
+			{
+				// skip already playing tables
+				continue;
+			}
+			if (table_it->alice == _self.account)
+			{
+				// can't play with myself
+				continue;
+			}
+			if (table_it->bob == account_name())
+			{
+				// found suitable table, let's join it
+
+				datas.modify(table_it, _self, [&]( auto& table ) {
+					table.bob = _self.account;
+					table.state = roundstatename.TABLE_READY;
+				});
+
+				return;
+			}
+		}
+		
+		datas.emplace(_self, [&]( auto& table ) {
+			table.table_id = datas.available_primary_key();
+			table.alice = _self.account_name;
+			table.state = roundstatename.WAITING_FOR_PLAYERS;
+        });
 	}
 
 	/// @abi action
