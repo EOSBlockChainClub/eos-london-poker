@@ -53,6 +53,8 @@ class poker : public eosio::contract
 		checksum256 bob_card_1;
 		checksum256 bob_card_2;
 
+		vector<checksum256> table_cards;
+
 		uint8_t cards_dealt;
 		vector<checksum256> encrypted_cards;
 
