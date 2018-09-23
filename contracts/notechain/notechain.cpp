@@ -260,7 +260,24 @@ class poker : public eosio::contract
 		assert(table_it->state == SHUFFLE);
 		assert(_self == table_it->target);
 
-
+		if (_self == table_it->alice)
+		{
+			// first player has shuffled the cards, we need to give cards to another player
+			datas.modify(table_it, _self, [&](auto& table) {
+				// table.state = SHUFFLE; // state doesn't change
+				table.target = table.bob;
+				table.encrypted_cards = encrypted_cards;
+			});
+		}
+		else
+		{
+			// both players have shuffled the cards, we can proceed with re-encryprion
+			datas.modify(table_it, _self, [&](auto& table) {
+				table.state = RECRYPT;
+				table.target = table.alice;
+				table.encrypted_cards = encrypted_cards;
+			});
+		}
 	}
 	/// @abi action
 	void deck_recrypted(uint64_t table_id, vector<checksum256> encrypted_cards)
