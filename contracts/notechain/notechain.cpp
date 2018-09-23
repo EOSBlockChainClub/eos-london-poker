@@ -234,7 +234,7 @@ class poker : public eosio::contract
 	// SIMPLIFIED FOR HACKATHON (only needed to finalize on-chain cheating detection, trivial to implement)
 	checksum256 encrypt(checksum256 card, checksum256 pk)
 	{
-		/* encrypts card with commutative algorithm */
+		/* encrypts card with commutative cryptography algorithm */
 		/* XOR is not secure and is only used for illustration purposes. ElGamal/SRA are okay with certain params. */
 		
 		// xor card with pk
@@ -243,7 +243,7 @@ class poker : public eosio::contract
 	// SIMPLIFIED FOR HACKATHON (only needed to finalize on-chain cheating detection, trivial to implement)
 	checksum256 decrypt(checksum256 card, checksum256 pk)
 	{
-		/* decrypts card with commutative algorithm */
+		/* decrypts card with commutative cryptography algorithm */
 		/* XOR is not secure and is only used for illustration purposes. ElGamal/SRA are okay with certain params. */
 
 		// xor card with pk
