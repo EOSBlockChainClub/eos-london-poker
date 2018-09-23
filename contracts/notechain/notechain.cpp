@@ -65,6 +65,10 @@ class poker : public eosio::contract
 		bool bob_ready;
 	};
 
+	typedef eosio::multi_index< N(rounddata), rounddata
+    //   indexed_by< N(getbyuser), const_mem_fun<notestruct, account_name, &notestruct::get_by_user> >
+      > roundtable;
+
 	//////////// GAME SEARCH SIMPLIFIED FOR HACKATHON ////////////
 
 	/// @abi action
