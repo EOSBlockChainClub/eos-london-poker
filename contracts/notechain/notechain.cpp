@@ -1,9 +1,11 @@
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/print.hpp>
+#include <eosiolib/asset.hpp>
 #include <eosiolib/currency.hpp>
 #include <eosiolib/singleton.hpp>
 #include <eosiolib/time.hpp>
 #include <eosiolib/system.h>
+#include <eosio.token/eosio.token.hpp>
 
 using namespace eosio;
 
@@ -87,6 +89,15 @@ class poker : public eosio::contract
 	typedef eosio::multi_index< N(rounddata), rounddata
     //   indexed_by< N(getbyuser), const_mem_fun<notestruct, account_name, &notestruct::get_by_user> >
       > rounddatas;
+	
+	// we need this struct and table to access eosio.token balances
+	struct account
+	{
+		asset balance;
+
+		uint64_t primary_key()const { return balance.symbol.name(); }
+	};
+    typedef eosio::multi_index<N(accounts), account> accounts;
 
 	//////////// GAME SEARCH SIMPLIFIED FOR HACKATHON ////////////
 
@@ -139,7 +150,7 @@ class poker : public eosio::contract
 		/* cancel game before the start */
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert((table_it->state == WAITING_FOR_PLAYERS) || (table_it->state == TABLE_READY));
 		assert((_self == table_it->alice) || (_self == table_it->bob));
@@ -172,7 +183,7 @@ class poker : public eosio::contract
 	{
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert(table_it->state == TABLE_READY);
 		assert((_self == table_it->alice) || (_self == table_it->bob));
@@ -183,7 +194,7 @@ class poker : public eosio::contract
 		{
 			// other player is not ready, wait for them
 			datas.modify(table_it, _self, [&](auto& table) {
-				if (_self == table->alice)
+				if (_self == table.alice)
 				{
 					table.alice_ready = true;
 				}
@@ -200,13 +211,13 @@ class poker : public eosio::contract
 				table.state = SHUFFLE;
 				table.target = table.alice;
 				table.cards_dealt = 0;
-				table.alice_keys = vector(53);
-				table.bob_keys = vector(53);
+				table.alice_keys = vector<checksum256>(53);
+				table.bob_keys = vector<checksum256>(53);
 			});
 		}
 		// now we should hold the bankroll amount of money on user account (hard-coded for now)
 		// FIXME: this stake is lost if game is cancelled, but game cancellation is not handled under hackathon time pressure
-		asset newBalance(table_it->buy_in * 2, CORE_SYMBOL);
+		asset newBalance(table_it->buy_in.amount * 2, table_it->buy_in.symbol);
 		action(
 			permission_level{ _self, N(active) },
 			N(eosio.token), N(transfer),
@@ -254,7 +265,7 @@ class poker : public eosio::contract
 
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert(table_it->state == SHUFFLE);
 		assert(_self == table_it->target);
@@ -285,7 +296,7 @@ class poker : public eosio::contract
 
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert(table_it->state == RECRYPT);
 		assert(_self == table_it->target);
@@ -317,7 +328,7 @@ class poker : public eosio::contract
 		
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert((table_it->state == DEAL_TABLE) || (table_it->state == DEAL_POCKET));
 		assert((_self == table_it->alice) || (_self == table_it->bob));
@@ -420,7 +431,7 @@ class poker : public eosio::contract
 
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert(table_it->state == BET_ROUND);
 		assert(_self == table_it->target);
@@ -432,7 +443,7 @@ class poker : public eosio::contract
 
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert(table_it->state == BET_ROUND);
 		assert(_self == table_it->target);
@@ -444,7 +455,7 @@ class poker : public eosio::contract
 
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert(table_it->state == BET_ROUND);
 		assert(_self == table_it->target);
@@ -456,7 +467,7 @@ class poker : public eosio::contract
 		
 		rounddatas datas(_self, _self);
 
-		auto table_it = datas.get(table_id);
+		auto table_it = datas.find(table_id);
 		assert(table_it != datas.end());
 		assert(table_it->state == BET_ROUND);
 		assert(_self == table_it->target);
