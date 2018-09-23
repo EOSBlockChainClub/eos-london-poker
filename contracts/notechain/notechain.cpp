@@ -290,6 +290,26 @@ class poker : public eosio::contract
 		assert(table_it != datas.end());
 		assert(table_it->state == RECRYPT);
 		assert(_self == table_it->target);
+
+		if (_self == table_it->alice)
+		{
+			// first player has re-encrypted the cards, we need to give cards to another player
+			datas.modify(table_it, _self, [&](auto& table) {
+				// table.state = SHUFFLE; // state doesn't change
+				table.target = table.bob;
+				table.encrypted_cards = encrypted_cards;
+			});
+	}
+		else
+		{
+			// both players have re-encrypted the cards, we can proceed to game
+			datas.modify(table_it, _self, [&](auto& table) {
+				table.state = DEAL_POCKET;
+				table.target = table.alice;
+				table.cards_dealt = 0;
+				table.encrypted_cards = encrypted_cards;
+			});
+		}
 	}
 	/// @abi action
 	void card_key(uint64_t table_id, checksum256 key)
