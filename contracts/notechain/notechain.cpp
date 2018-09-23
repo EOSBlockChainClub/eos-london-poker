@@ -167,4 +167,4 @@ class poker : public eosio::contract
 	}
 };
 
-EOSIO_ABI( poker, (start_game) )
+EOSIO_ABI( poker, (search_game)(cancel_game)(start_game)(deck_shuffled)(deck_recrypted)(card_key)(check)(call)(raise)(fold)(dispute)(card_keys)(dispute_step) )
