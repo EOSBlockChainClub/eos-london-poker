@@ -55,6 +55,9 @@ class poker : public eosio::contract
 		eosio::asset alice_bet;
 		eosio::asset bob_bet;
 
+		// amount of money needed to enter this table
+		eosio::asset buy_in;
+
 		// pocket cards
 		checksum256 alice_card_1;
 		checksum256 alice_card_2;
@@ -96,12 +99,12 @@ class poker : public eosio::contract
 
 		for (auto table_it = datas.begin(); table_it != datas.end(); ++table_it)
 		{
-			if (table_it->state != roundstatename.WAITING_FOR_PLAYERS)
+			if (table_it->state != WAITING_FOR_PLAYERS)
 			{
 				// skip already playing tables
 				continue;
 			}
-			if (table_it->alice == _self.account)
+			if (table_it->alice == _self)
 			{
 				// can't play with myself
 				continue;
@@ -111,8 +114,8 @@ class poker : public eosio::contract
 				// found suitable table, let's join it
 
 				datas.modify(table_it, _self, [&]( auto& table ) {
-					table.bob = _self.account;
-					table.state = roundstatename.TABLE_READY;
+					table.bob = _self;
+					table.state = TABLE_READY;
 				});
 
 				return;
@@ -123,22 +126,103 @@ class poker : public eosio::contract
 		
 		datas.emplace(_self, [&]( auto& table ) {
 			table.table_id = datas.available_primary_key();
-			table.alice = _self.account_name;
-			table.state = roundstatename.WAITING_FOR_PLAYERS;
+			table.alice = _self;
+			table.state = WAITING_FOR_PLAYERS;
+			// table buy-in is hardcoded for the duration of hackathon
+			table.buy_in = asset(1000, CORE_SYMBOL);
         });
 	}
 
 	/// @abi action
-	void cancel_game()
+	void cancel_game(uint64_t table_id)
 	{
-		/*  */
-		_self;
+		/* cancel game before the start */
+		rounddatas datas(_self, _self);
+
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert((table_it->state == WAITING_FOR_PLAYERS) || (table_it->state == TABLE_READY));
+		assert((_self == table_it->alice) || (_self == table_it->bob));
+		if (_self == table_it->alice)
+		{
+			// this is the user that created table (alice)
+			datas.modify(table_it, _self, [&](auto& table) {
+				// make other player (bob) the creator
+				table.alice = table.bob;
+				table.bob = account_name();
+				table.state = WAITING_FOR_PLAYERS;
+				table.alice_ready = false;
+				table.bob_ready = false;
+			});
+		}
+		else
+	{
+			// just remove the player from table
+			datas.modify(table_it, _self, [&](auto& table) {
+				table.bob = account_name();
+				table.state = WAITING_FOR_PLAYERS;
+				table.alice_ready = false;
+				table.bob_ready = false;
+			});
+		}
 	}
 
     /// @abi action
     void start_game(uint64_t table_id)
 	{
-		_self;
+		rounddatas datas(_self, _self);
+
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert(table_it->state == TABLE_READY);
+		assert((_self == table_it->alice) || (_self == table_it->bob));
+
+		// check if other player is ready
+		bool ready = (_self == table_it->alice) ? table_it->bob_ready : table_it->alice_ready;
+		if (!ready)
+		{
+			// other player is not ready, wait for them
+			datas.modify(table_it, _self, [&](auto& table) {
+				if (_self == table->alice)
+				{
+					table.alice_ready = true;
+				}
+				else
+				{
+					table.bob_ready = true;
+				}
+			});
+		}
+		else
+		{
+			// both players are ready, we can start the game and shuffle cards
+			datas.modify(table_it, _self, [&](auto& table) {
+				table.state = SHUFFLE;
+				table.target = table.alice;
+				table.cards_dealt = 0;
+				table.encrypted_cards = vector(53);
+				table.alice_keys = vector(53);
+				table.bob_keys = vector(53);
+			});
+		}
+		// now we should hold the bankroll amount of money on user account (hard-coded for now)
+		// FIXME: this stake is lost if game is cancelled, but game cancellation is not handled under hackathon time pressure
+		asset newBalance(table_it->buy_in * 2, CORE_SYMBOL);
+		action(
+			permission_level{ _self, N(active) },
+			N(eosio.token), N(transfer),
+			std::make_tuple(_self, N(notechainacc), newBalance, std::to_string(table_it->table_id))
+        ).send();
+    }
+	bool enoughMoney(account_name opener, asset quantity)
+	{
+		return getUserBalance(opener, quantity).amount >= quantity.amount;
+	}
+	asset getUserBalance(account_name opener, asset quantity)
+	{
+		accounts acc( N(eosio.token), opener );
+		auto balance = acc.get(quantity.symbol.name());
+		return balance.balance;
     }
 
 	///////////////////////////////////////////////////////////
