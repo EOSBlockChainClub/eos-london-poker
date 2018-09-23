@@ -32,6 +32,7 @@ class poker : public eosio::contract
 		DEAL_POCKET,
 		BET_ROUND,
 		DEAL_TABLE,
+		SHOWDOWN,
 		END
 	};
 	/// @abi table rounddatas
@@ -450,6 +451,7 @@ class poker : public eosio::contract
 				else
 				{
 					// calculate winner!
+					table.state = SHOWDOWN;
 				}
 			});
 		}
@@ -489,10 +491,6 @@ class poker : public eosio::contract
 		assert(table_it != datas.end());
 		assert(table_it->state == BET_ROUND);
 		assert(_self == table_it->target);
-	}
-	bool calculateWinner(rounddata* table_it)
-	{
-
 	}
 
 	///////////////////// DISPUTES & CHEATING DETECTION ////////////////////
