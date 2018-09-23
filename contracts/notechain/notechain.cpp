@@ -200,7 +200,6 @@ class poker : public eosio::contract
 				table.state = SHUFFLE;
 				table.target = table.alice;
 				table.cards_dealt = 0;
-				table.encrypted_cards = vector(53);
 				table.alice_keys = vector(53);
 				table.bob_keys = vector(53);
 			});
@@ -299,7 +298,7 @@ class poker : public eosio::contract
 				table.target = table.bob;
 				table.encrypted_cards = encrypted_cards;
 			});
-	}
+		}
 		else
 		{
 			// both players have re-encrypted the cards, we can proceed to game
