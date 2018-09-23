@@ -60,12 +60,6 @@ class poker : public eosio::contract
 		// amount of money needed to enter this table
 		eosio::asset buy_in;
 
-		// pocket cards
-		checksum256 alice_card_1;
-		checksum256 alice_card_2;
-		checksum256 bob_card_1;
-		checksum256 bob_card_2;
-
 		// table cards
 		vector<checksum256> table_cards;
 
