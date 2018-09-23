@@ -43,10 +43,10 @@ class poker : public eosio::contract
 		account_name alice;
 		account_name bob;
 
-		asset alice_bankroll;
-		asset bob_bankroll;
-		asset alice_bet;
-		asset bob_bet;
+		eosio::asset alice_bankroll;
+		eosio::asset bob_bankroll;
+		eosio::asset alice_bet;
+		eosio::asset bob_bet;
 
 		checksum256 alice_card_1;
 		checksum256 alice_card_2;
@@ -78,7 +78,7 @@ class poker : public eosio::contract
 	}
 
     /// @abi action
-    void start_game()
+    void start_game(uint64_t table_id)
 	{
 		_self;
     }
@@ -105,19 +105,19 @@ class poker : public eosio::contract
 	///////////////////////// SHUFFLING METHODS ////////////////////////////
 
 	/// @abi action
-	void deck_shuffled(vector<checksum256> encrypted_cards)
+	void deck_shuffled(uint64_t table_id, vector<checksum256> encrypted_cards)
 	{
 		/* player pushes shuffled & encrypted deck */
 
 	}
 	/// @abi action
-	void deck_recrypted(vector<checksum256> encrypted_cards)
+	void deck_recrypted(uint64_t table_id, vector<checksum256> encrypted_cards)
 	{
 		/* player pushes re-encrypted deck */
 
 	}
 	/// @abi action
-	void card_key(checksum256 key)
+	void card_key(uint64_t table_id, checksum256 key)
 	{
 		/* receive next card private key from player */
 
@@ -126,25 +126,25 @@ class poker : public eosio::contract
 	//////////////////////// POKER GAME LOGIC METHODS ////////////////////////////
 	
 	/// @abi action
-	void check()
+	void check(uint64_t table_id)
 	{
 		/* `check` (do not raise bet, do not fold cards) */
 
 	}
 	/// @abi action
-	void call()
+	void call(uint64_t table_id)
 	{
 		/* `call` (raise bet to match opponent raised bet) */
 
 	}
 	/// @abi action
-	void raise(asset amount)
+	void raise(uint64_t table_id, eosio::asset amount)
 	{
 		/* `raise` bet (no more than current player bankroll) */
 
 	}
 	/// @abi action
-	void fold()
+	void fold(uint64_t table_id)
 	{
 		/* `fold` (drop cards, stop playing current round) */
 	}
@@ -152,19 +152,19 @@ class poker : public eosio::contract
 	///////////////////// DISPUTES & CHEATING DETECTION ////////////////////
 
 	/// @abi action
-	void dispute()
+	void dispute(uint64_t table_id)
 	{
 		/* Open cheating dispute. The disputing player has to stake total value of all bankrolls on the table. */
 
 	}
 	/// @abi action
-	void card_keys(vector<checksum256> private_keys)
+	void card_keys(uint64_t table_id, vector<checksum256> private_keys)
 	{
 		/* Receives all card encryption private keys from the player to check for cheating. */
 
 	}
 	/// @abi action
-	void dispute_step(uint8_t step_idx)
+	void dispute_step(uint64_t table_id, uint8_t step_idx)
 	{
 		/* Dispute a specific encryption step. For optimization only
 			(players can do their calculation off-chain and then check just one). */
