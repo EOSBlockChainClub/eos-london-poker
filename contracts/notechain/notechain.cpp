@@ -156,7 +156,7 @@ class poker : public eosio::contract
 			});
 		}
 		else
-	{
+		{
 			// just remove the player from table
 			datas.modify(table_it, _self, [&](auto& table) {
 				table.bob = account_name();
@@ -223,7 +223,7 @@ class poker : public eosio::contract
 		accounts acc( N(eosio.token), opener );
 		auto balance = acc.get(quantity.symbol.name());
 		return balance.balance;
-    }
+	}
 
 	///////////////////////////////////////////////////////////
 
@@ -253,18 +253,41 @@ class poker : public eosio::contract
 	{
 		/* player pushes shuffled & encrypted deck */
 
+		rounddatas datas(_self, _self);
+
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert(table_it->state == SHUFFLE);
+		assert(_self == table_it->target);
+
+
 	}
 	/// @abi action
 	void deck_recrypted(uint64_t table_id, vector<checksum256> encrypted_cards)
 	{
 		/* player pushes re-encrypted deck */
 
+		rounddatas datas(_self, _self);
+
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert(table_it->state == RECRYPT);
+		assert(_self == table_it->target);
 	}
 	/// @abi action
 	void card_key(uint64_t table_id, checksum256 key)
 	{
 		/* receive next card private key from player */
+		
+		rounddatas datas(_self, _self);
 
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert((table_it->state == DEAL_TABLE) || (table_it->state == DEAL_POCKET));
+		if (table_it->state == DEAL_POCKET)
+		{
+			assert(_self != table_it->target);
+		}
 	}
 	
 	//////////////////////// POKER GAME LOGIC METHODS ////////////////////////////
@@ -274,23 +297,48 @@ class poker : public eosio::contract
 	{
 		/* `check` (do not raise bet, do not fold cards) */
 
+		rounddatas datas(_self, _self);
+
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert(table_it->state == BET_ROUND);
+		assert(_self == table_it->target);
 	}
 	/// @abi action
 	void call(uint64_t table_id)
 	{
 		/* `call` (raise bet to match opponent raised bet) */
 
+		rounddatas datas(_self, _self);
+
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert(table_it->state == BET_ROUND);
+		assert(_self == table_it->target);
 	}
 	/// @abi action
 	void raise(uint64_t table_id, eosio::asset amount)
 	{
 		/* `raise` bet (no more than current player bankroll) */
 
+		rounddatas datas(_self, _self);
+
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert(table_it->state == BET_ROUND);
+		assert(_self == table_it->target);
 	}
 	/// @abi action
 	void fold(uint64_t table_id)
 	{
 		/* `fold` (drop cards, stop playing current round) */
+		
+		rounddatas datas(_self, _self);
+
+		auto table_it = datas.get(table_id);
+		assert(table_it != datas.end());
+		assert(table_it->state == BET_ROUND);
+		assert(_self == table_it->target);
 	}
 
 	///////////////////// DISPUTES & CHEATING DETECTION ////////////////////
