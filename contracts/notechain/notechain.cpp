@@ -1,5 +1,10 @@
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/print.hpp>
+#include <eosiolib/currency.hpp>
+#include <eosiolib/singleton.hpp>
+#include <eosiolib/time.hpp>
+#include <eosiolib/system.h>
+
 using namespace eosio;
 
 struct playerpair
