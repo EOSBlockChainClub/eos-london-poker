@@ -37,30 +37,44 @@ class poker : public eosio::contract
 	{
 		uint64_t table_id;
 
+		// current state of the game
 		roundstatename state;
+		// target player (behavior depends on current state)
 		account_name target;
 
+		// first player
 		account_name alice;
+		// second player
 		account_name bob;
 
+		// bankroll (total available money)
 		eosio::asset alice_bankroll;
 		eosio::asset bob_bankroll;
+
+		// current round bets
 		eosio::asset alice_bet;
 		eosio::asset bob_bet;
 
+		// pocket cards
 		checksum256 alice_card_1;
 		checksum256 alice_card_2;
 		checksum256 bob_card_1;
 		checksum256 bob_card_2;
 
+		// table cards
 		vector<checksum256> table_cards;
 
+		// amount of cards that came into play
 		uint8_t cards_dealt;
+
+		// array of encrypted cards in a deck
 		vector<checksum256> encrypted_cards;
 
+		// player private keys (PK_0, PK_1-PK_52)
 		vector<checksum256> alice_keys;
 		vector<checksum256> bob_keys;
 
+		// whether the players are ready to play
 		bool alice_ready;
 		bool bob_ready;
 
@@ -76,7 +90,8 @@ class poker : public eosio::contract
 	/// @abi action
 	void search_game( /* asset min_stake, asset max_stake */ ) // only one bet possible for hackathon
 	{
-		// couldn't find suitable table, let's create a new one
+		/* player searches a suitable table (for hackathon any table is suitable) */
+
 		rounddatas datas(_self, _self);
 
 		for (auto table_it = datas.begin(); table_it != datas.end(); ++table_it)
@@ -104,6 +119,8 @@ class poker : public eosio::contract
 			}
 		}
 		
+		// couldn't find suitable table, let's create a new one
+		
 		datas.emplace(_self, [&]( auto& table ) {
 			table.table_id = datas.available_primary_key();
 			table.alice = _self.account_name;
@@ -114,6 +131,7 @@ class poker : public eosio::contract
 	/// @abi action
 	void cancel_game()
 	{
+		/*  */
 		_self;
 	}
 
