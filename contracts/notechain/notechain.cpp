@@ -321,9 +321,94 @@ class poker : public eosio::contract
 		auto table_it = datas.get(table_id);
 		assert(table_it != datas.end());
 		assert((table_it->state == DEAL_TABLE) || (table_it->state == DEAL_POCKET));
+		assert((_self == table_it->alice) || (_self == table_it->bob));
 		if (table_it->state == DEAL_POCKET)
 		{
-			assert(_self != table_it->target);
+			// we're dealing pocket cards
+			
+			assert(_self != table_it->target); // we should not send encryption keys for our own cards
+
+			if (_self == table_it->alice)
+			{
+				datas.modify(table_it, _self, [&](auto& table) {
+					// save the key for later use in decryption
+					table.alice_keys[table.cards_dealt + 1] = key;
+
+					table.cards_dealt = table.cards_dealt + 1;
+
+					table.target = table.bob;
+				});
+			}
+			else
+			{
+				datas.modify(table_it, _self, [&](auto& table) {
+					// save the key for later use in decryption
+					table.bob_keys[table.cards_dealt + 1] = key;
+
+					table.cards_dealt = table.cards_dealt + 1;
+
+					table.target = table.alice;
+
+					if (table.cards_dealt == 4) // hardcoded pocket cards count (2 players with 2 pocket cards each)
+					{
+						// we dealt 2 cards to each player, starting betting round
+						table.state = BET_ROUND;
+					}
+				});
+			}
+		}
+		else
+		{
+			// we're dealing table cards
+			auto opponent_keys = (_self == table_it->alice) ? table_it->bob_keys : table_it->alice_keys;
+			// check if the opponent has already sent their keys
+			if (opponent_keys[table_it->cards_dealt + 1] == checksum256())
+			{
+				// opponent is not ready yet
+				datas.modify(table_it, _self, [&](auto& table) {
+					// save the card key for later use
+					if (_self == table.alice)
+					{
+						table.alice_keys[table_it->cards_dealt + 1] = key;
+					}
+					else
+					{
+						table.bob_keys[table_it->cards_dealt + 1] = key;
+					}
+				});
+			}
+			else
+			{
+				// opponent has already given their key
+				datas.modify(table_it, _self, [&](auto& table) {
+					// save the card key for later use
+					if (_self == table.alice)
+					{
+						table.alice_keys[table_it->cards_dealt + 1] = key;
+					}
+					else
+					{
+						table.bob_keys[table_it->cards_dealt + 1] = key;
+					}
+					
+					// one more card is marked as dealt
+					table.cards_dealt = table.cards_dealt + 1;
+
+					if (table.cards_dealt < 7) // magic number 7 is `2(alice cards) + 2(bob cards) + 3 (flop cards)`
+					{
+						// flop was not fully dealt yet, waiting for more keys
+						return;
+					}
+					else
+					{
+						// it's either flop, turn, or river
+						// we don't burn card like they do in casinos, it has no effect on randomness
+						// but we can burn it if we decide to
+						table.state = BET_ROUND;
+						table.target = table.target; // there's a little mess with turn order, but we have no more hackathon time to fix it
+					}
+				});
+			}
 		}
 	}
 	
